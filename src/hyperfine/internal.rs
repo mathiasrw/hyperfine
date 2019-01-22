@@ -65,7 +65,7 @@ pub fn write_benchmark_comparison(results: &Vec<BenchmarkResult>) {
     }
 
     println!("{}", "Summary".bold());
-    println!("  '{}' ran", fastest_item.command.cyan());
+    println!("  '{}' ran", fastest_item.command.magenta());
     longer_items.sort_by(|l, r| l.mean.partial_cmp(&r.mean).unwrap_or(Ordering::Equal));
 
     for item in longer_items {
@@ -77,10 +77,10 @@ pub fn write_benchmark_comparison(results: &Vec<BenchmarkResult>) {
                 + (fastest_item.stddev / fastest_item.mean).powi(2))
             .sqrt();
         println!(
-            "{} ± {} times faster than '{}'",
-            format!("{:8.2}", ratio).bold().green(),
-            format!("{:.2}", ratio_stddev).green(),
-            &item.command.magenta()
+            "{} times faster than '{}' {}",
+            format!("{:8.1}", ratio).bold().green(),
+            &item.command.cyan(),
+            format!("(± {:.1})", ratio_stddev).dimmed(),
         );
     }
 }
