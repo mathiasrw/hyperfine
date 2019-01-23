@@ -1,6 +1,7 @@
 use super::Exporter;
 
 use hyperfine::format::format_duration_value;
+use hyperfine::internal::get_fastes_run;
 use hyperfine::types::BenchmarkResult;
 use hyperfine::units::Unit;
 
@@ -24,8 +25,12 @@ impl Exporter for MarkdownExporter {
 
         let mut destination = start_table(unit);
 
-        for result in results {
-            add_table_row(&mut destination, result, unit);
+        let (fastest_item, longer_items) = get_fastes_run(results);
+
+        add_table_row(&mut destination, fastest_item, unit, fastest_item);
+
+        for entry in longer_items {
+            add_table_row(&mut destination, entry, unit, fastest_item);
         }
 
         Ok(destination)
@@ -34,7 +39,7 @@ impl Exporter for MarkdownExporter {
 
 fn table_header(unit_short_name: String) -> String {
     format!(
-        "| Command | Mean [{unit}] | Min…Max [{unit}] |\n|:---|---:|---:|\n",
+        "| Command | Mean [{unit}] | Min [{unit}] | Max [{unit}] | Relative | \n|:---|---:|:---|:---|---:|\n",
         unit = unit_short_name
     )
 }
@@ -43,20 +48,27 @@ fn start_table(unit: Unit) -> Vec<u8> {
     table_header(unit.short_name()).bytes().collect()
 }
 
-fn add_table_row(dest: &mut Vec<u8>, entry: &BenchmarkResult, unit: Unit) {
+fn add_table_row(
+    dest: &mut Vec<u8>,
+    entry: &BenchmarkResult,
+    unit: Unit,
+    fastes_entry: &BenchmarkResult,
+) {
     let mean_str = format_duration_value(entry.mean, Some(unit)).0;
     let stddev_str = format_duration_value(entry.stddev, Some(unit)).0;
     let min_str = format_duration_value(entry.min, Some(unit)).0;
     let max_str = format_duration_value(entry.max, Some(unit)).0;
+    let ratio_str = format!("{:.1}", entry.mean / fastes_entry.mean);
 
     dest.extend(
         format!(
-            "| `{command}` | {mean} ± {stddev} | {min}…{max} |\n",
+            "| `{command}` | {mean} ± {stddev} | {min} | {max} | {relative} |\n",
             command = entry.command.replace("|", "\\|"),
             mean = mean_str,
             stddev = stddev_str,
             min = min_str,
             max = max_str,
+            relative = ratio_str,
         )
         .as_bytes(),
     );

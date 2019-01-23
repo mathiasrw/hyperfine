@@ -51,22 +51,10 @@ pub fn write_benchmark_comparison(results: &Vec<BenchmarkResult>) {
         return;
     }
 
-    // Show which was faster, maybe expand to table later?
-    let mut fastest_item: &BenchmarkResult = &results[0];
-    let mut longer_items: Vec<&BenchmarkResult> = Vec::new();
-
-    for run in &results[1..] {
-        if let Some(Ordering::Less) = fastest_item.mean.partial_cmp(&run.mean) {
-            longer_items.push(run);
-        } else {
-            longer_items.push(fastest_item);
-            fastest_item = run;
-        }
-    }
+    let (fastest_item, longer_items) = get_fastes_run(results);
 
     println!("{}", "Summary".bold());
     println!("  '{}' ran", fastest_item.command.magenta());
-    longer_items.sort_by(|l, r| l.mean.partial_cmp(&r.mean).unwrap_or(Ordering::Equal));
 
     for item in longer_items {
         let ratio = item.mean / fastest_item.mean;
@@ -83,6 +71,24 @@ pub fn write_benchmark_comparison(results: &Vec<BenchmarkResult>) {
             format!("(± {:.1})", ratio_stddev).dimmed(),
         );
     }
+}
+
+pub fn get_fastes_run(results: &Vec<BenchmarkResult>) -> (&BenchmarkResult, Vec<&BenchmarkResult>) {
+    let mut fastest_item: &BenchmarkResult = &results[0];
+    let mut longer_items: Vec<&BenchmarkResult> = Vec::new();
+
+    for run in &results[1..] {
+        if let Some(Ordering::Less) = fastest_item.mean.partial_cmp(&run.mean) {
+            longer_items.push(run);
+        } else {
+            longer_items.push(fastest_item);
+            fastest_item = run;
+        }
+    }
+
+    longer_items.sort_by(|l, r| l.mean.partial_cmp(&r.mean).unwrap_or(Ordering::Equal));
+
+    (fastest_item, longer_items)
 }
 
 #[test]
